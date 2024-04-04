@@ -36,9 +36,21 @@ try:
     HAVING quantity > 0
     """
 
+    # Execute the SQL query
+    cursor.execute(sql_query)
+
+    # Fetch the results
+    results = cursor.fetchall()
+
+    # Store the results in a CSV file
+    with open('output_sql.csv', 'w') as file:
+        file.write("Customer;Age;Item;Quantity\n")
+        for row in results:
+            file.write(";".join(map(str, row)) + "\n")
+
     # Execute the SQL query and fetch the results
     sql_results = pd.read_sql_query(sql_query, conn)
-    print(sql_results)
+
     # Pandas solution
     # Filter customers aged 18-35
     customers_filtered = sql_results[sql_results['age'].between(18, 35)]
