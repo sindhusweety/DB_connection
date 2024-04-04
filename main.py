@@ -6,28 +6,22 @@ try:
     conn = sqlite3.connect('Data Engineer_ETL Assignment.db')
     cursor = conn.cursor()
 
-    # SQL solution
-    # Query to extract total quantities of each item bought per customer aged 18-35
-    sql_query = """
-    SELECT c.customer_id, c.age, i.item_name, COALESCE(SUM(o.quantity), 0) AS quantity
-    FROM customers c
-    JOIN sales s ON c.customer_id = s.customer_id
-    JOIN orders o ON s.sales_id = o.sales_id
-    JOIN items i ON o.item_id = i.item_id
-    WHERE c.age BETWEEN 18 AND 35
-    GROUP BY c.customer_id, i.item_name
-    HAVING quantity > 0
-    """
+    df_sales = pd.read_sql_query("SELECT * FROM sales", conn)
+    df_order = pd.read_sql_query("SELECT * FROM `orders`", conn)
+    df_customer = pd.read_sql_query("SELECT * FROM customers", conn)
+    df_items = pd.read_sql_query("SELECT * FROM items", conn)
 
-    # Execute the SQL query and fetch the results
-    sql_results = pd.read_sql_query(sql_query, conn)
+    df = pd.merge(df_order, df_sales, on='sales_id')
+    df = pd.merge(df, df_customer, on='customer_id')
+    df = pd.merge(df, df_items, on='item_id')
 
-    # Pandas solution
-    # Filter customers aged 18-35
-    customers_filtered = sql_results[sql_results['age'].between(18, 35)]
+    df_filtered = df[(df['age'] >= 18) & (df['age'] <= 35) & (df['quantity'] > 0)]
 
-    # Store the DataFrame to a CSV file
-    customers_filtered.to_csv('output.csv', index=False, sep=';')
+    df_grouped = df_filtered.groupby(['customer_id', 'age', 'item_name'])['quantity'].sum().reset_index()
+
+    df_grouped.rename(columns={'customer_id': 'Customer', 'item_name': 'Item', 'quantity': 'Quantity'}, inplace=True)
+
+    df_grouped.to_csv('output.csv', index=False, sep=';')
 
 except sqlite3.Error as e:
     print("SQLite error:", e)
